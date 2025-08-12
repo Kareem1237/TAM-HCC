@@ -94,8 +94,8 @@ final_scope=final[final['code_categorie'].isin(scope)]
 preventif= ["142", "143", "197", "223", "224", "228", "230", "266", "267", "268", 
                      "269", "270", "294", "347", "438", "616", "636", "637", "638", "645"]
 curatif=["124","125","130","289","439","630"]
-final_scope.loc[final_scope['code_categorie'].isin(preventif),'healthcareservicetype']='PREVENTION'
-final_scope.loc[final_scope['code_categorie'].isin(curatif),'healthcareservicetype']='CURATIVE'
+final_scope.loc[final_scope['code_categorie'].isin(preventif),'orga_type']='PREVENTION'
+final_scope.loc[final_scope['code_categorie'].isin(curatif),'orga_type']='CURATIVE'
 final_scope['organization_type']=final_scope['code_categorie'].astype(str).map(mapping).fillna('OTHER')
 
 final_scope['status']='open'
@@ -111,22 +111,33 @@ final_scope[["longitude", "lattitude"]] = final_scope.apply(
 )
 new_tam=final_scope.copy()
 
-
+gsheet_columns= [
+    "numero_finess", "numero_finess_juridique", "raison_sociale", "raison_sociale_long",
+    "raison_sociale_complement", "distribution_complement", "voie_numero", "voie_type",
+    "voie_label", "voie_complement", "lieu_dit_bp", "ville", "departement",
+    "departement_label", "libelle_routage", "telephone", "fax", "code_categorie",
+    "label_categorie", "code_status", "label_status", "siret", "ape", "code_tarif",
+    "label_tarif", "code_psph", "label_psph", "date_ouverture", "date_autor",
+    "date_update", "num_uai", "coord_x", "coord_y", "source_coord", "date_update_coord",
+    "adresse", "code_postal", "orga_type", "status", "closed_at", "new_establishment_this_month",
+    "longitude", "lattitude"
+]
 
 today_date= datetime.today().strftime("%d-%m-%Y")
 accounts_in_tam=len(new_tam['numero_finess'].unique())
 st.markdown(f'## Total accounts in TAM on {today_date}:')
 st.markdown(f'## {accounts_in_tam} accounts')
 
-st.markdown('### new TAM details: ')
+st.markdown('### New TAM details: ')
 st.dataframe(new_tam)
 
+st.markdown("<hr style='border:2px solid #000;'>", unsafe_allow_html=True)
 
 
 current_tam = st.file_uploader("Upload the current TAM in SF as csv", type=["csv"])
 if current_tam is not None:
     current_tam = pd.read_csv(current_tam)
-    st.markdown('current tam details')
+    st.markdown(f'Current tam details: {len(current_tam)} accounts')
     st.dataframe(current_tam)  
     
     new_tam_finess=set(new_tam['numero_finess'].unique())
@@ -141,11 +152,25 @@ if current_tam is not None:
     
     csv = new_accounts.to_csv(index=False).encode('utf-8')
     st.download_button(
-    label="Download new finess accounts as a csv",
+    label="📥   Download new finess accounts as a csv ",
     data=csv,
     file_name=f'new_finess_accounts_{today_date}.csv',
     mime='text/csv',
     )
-
+    st.write(' ')
+    current_tam=current_tam[gsheet_columns]
+    current_tam['new_establishment_this_month']=False
+    new_accounts=new_accounts[gsheet_columns]
+    import_gsheet = pd.concat([current_tam, new_accounts], ignore_index=True)
+    st.markdown(f'TAM to import gsheet : {len(import_gsheet)} accounts')
+    st.dataframe(import_gsheet)
+    csv_import_gsheet = import_gsheet.to_csv(index=False).encode('utf-8')
+    
+    st.download_button(
+    label="📥   Download new csv to replace current linked sheet in metabase ",
+    data=csv_import_gsheet,
+    file_name=f'new_import_gsheet_{today_date}.csv',
+    mime='text/csv',
+    )
 
     
