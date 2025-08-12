@@ -33,7 +33,7 @@ mapping = {
     '645': 'HEALTH_CENTER_MVZ'
 }
 
-st.title('TAM HCC')
+st.title('🏢 TAM HCC 🏢')
 
 filename = "https://static.data.gouv.fr/resources/finess-extraction-du-fichier-des-etablissements/20250704-114227/etalab-cs1100507-stock-20250703-0338.csv"
 
