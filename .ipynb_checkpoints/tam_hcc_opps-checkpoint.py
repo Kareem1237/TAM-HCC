@@ -158,6 +158,7 @@ if current_tam is not None:
     new_accounts_modified=new_accounts_modified[opps_columns]
     st.dataframe(new_accounts_modified)
     csv = new_accounts_modified.to_csv(index=False).encode('utf-8')
+    st.markdown("**For DQ Operations team**") 
     st.download_button(
     label="📥   Download new finess accounts as a csv ",
     data=csv,
@@ -172,7 +173,7 @@ if current_tam is not None:
     st.markdown(f'TAM to import gsheet : {len(import_gsheet)} accounts')
     st.dataframe(import_gsheet)
     csv_import_gsheet = import_gsheet.to_csv(index=False).encode('utf-8')
-    
+    st.markdown("**For DQ Projects team**")    
     st.download_button(
     label="📥   Download new csv to replace current linked sheet in metabase ",
     data=csv_import_gsheet,
