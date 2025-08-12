@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 import re
 from datetime import datetime
+from pyproj import Transformer
+
 
 mapping = {
     '124': 'HEALTH_CENTER_MVZ',
@@ -101,7 +103,12 @@ final_scope['closed_at']=np.nan
 final_scope['new_establishment_this_month']=False
 final_scope['coord_x'] = final_scope['coord_x'].replace(",", ".")
 final_scope['coord_y'] = final_scope['coord_y']
+transformer = Transformer.from_crs("EPSG:2154", "EPSG:4326", always_xy=True)
 
+final_scope[["longitude", "lattitude"]] = final_scope.apply(
+    lambda row: pd.Series(transformer.transform(row['coord_x'], row['coord_y'])),
+    axis=1
+)
 new_tam=final_scope.copy()
 
 
