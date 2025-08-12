@@ -122,7 +122,11 @@ gsheet_columns= [
     "adresse", "code_postal", "orga_type", "status", "closed_at", "new_establishment_this_month",
     "longitude", "lattitude"
 ]
-
+opps_columns = [
+    "finessnumber__c", "name", "phone", "adresse", "code_postal",
+    "healthcareservice type", "orga type", "siret", "label_categorie",
+    "label_status", "date_ouverture", "date_update", "numero_finess_juridique"
+]
 today_date= datetime.today().strftime("%d-%m-%Y")
 accounts_in_tam=len(new_tam['numero_finess'].unique())
 st.markdown(f'## Total accounts in TAM on {today_date}:')
@@ -148,9 +152,12 @@ if current_tam is not None:
     st.markdown(f'New accounts : {number_of_new_accounts_in_tam}')
     new_tam.loc[new_tam['numero_finess'].isin(list(new_finess)),'new_establishment_this_month']=True
     new_accounts=new_tam[new_tam['numero_finess'].isin(list(new_finess))]
-    st.dataframe(new_accounts)
     
-    csv = new_accounts.to_csv(index=False).encode('utf-8')
+    new_accounts_modified=new_accounts.copy()
+    new_accounts_modified.rename(columns={'numero_finess':'finessnumber__c','raison_sociale':'name','telephone':'phone','orga_type':'healthcareservice type','organization_type':'orga type'},inplace=True)
+    new_accounts_modified=new_accounts_modified[opps_columns]
+    st.dataframe(new_accounts_modified)
+    csv = new_accounts_modified.to_csv(index=False).encode('utf-8')
     st.download_button(
     label="📥   Download new finess accounts as a csv ",
     data=csv,
