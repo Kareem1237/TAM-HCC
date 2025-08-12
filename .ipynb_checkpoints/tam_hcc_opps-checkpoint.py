@@ -118,8 +118,9 @@ st.dataframe(new_tam)
 
 current_tam = st.file_uploader("Upload the current TAM in SF as csv", type=["csv"])
 if current_tam is not None:
-    current_tam = pd.read_csv(current_tam)  
-    #st.dataframe(current_tam)  
+    current_tam = pd.read_csv(current_tam)
+    st.markdown('current tam details')
+    st.dataframe(current_tam)  
     
     new_tam_finess=set(new_tam['numero_finess'].unique())
     current_tam_finess=set(current_tam['numero_finess'].unique())
