@@ -3,8 +3,13 @@ import requests
 import zipfile
 import io
 import pandas as pd
-
-st.markdown("<h1 style='text-align: center;'>⚕️ TAM Pharmacies ⚕️</h1>", unsafe_allow_html=True)
+st.set_page_config(layout="wide")
+st.markdown("<h1 style='text-align: center;'>⚕️ TAM Pharma ⚕️</h1>", unsafe_allow_html=True)
+st.write(' ')
+st.write(' ')
+st.write(' ')
+st.write(' ')
+st.write(' ')
 
 url = "https://www.ordre.pharmacien.fr/download/annuaire_csv.zip"
 response = requests.get(url)
@@ -51,6 +56,10 @@ with zip_file.open(pac_filename) as pacs:
 pharmacies=pharmacies.astype(str)
 pharmacies['phone'] = pharmacies['Téléphone'].apply(lambda x: '+33' + x[1:] if x.startswith('0') else x)
 pharmacies=pharmacies.drop(columns='Téléphone',axis=1)
-
-st.markdown('Pharmacies')
-st.dataframe(pharmacies.head(20),use_container_width=True)
+col1, col2 = st.columns(2)
+with col1:
+    st.markdown('💊 Pharmacies')
+    st.dataframe(pharmacies.head(20),use_container_width=True)
+with col2:
+    st.markdown('🥼 Pharmacists')
+    st.dataframe(pharmacists.head(20),use_container_width=True)
