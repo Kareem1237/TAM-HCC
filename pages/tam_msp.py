@@ -69,7 +69,7 @@ st.write(' ')
 
 msp_csv=final_scope.to_csv(index=False).encode('utf-8')
 st.download_button(
-    label="📥   Download the new TAM for Radiology as a csv ",
+    label="📥   Download the new TAM for MSP as a csv ",
     data=msp_csv,
     file_name=f'msp_tam_accounts_{today_date}.csv',
     mime='text/csv',
