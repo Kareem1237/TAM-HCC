@@ -69,7 +69,7 @@ st.write(' ')
 st.dataframe(final_scope)
 radio_csv=final_scope.to_csv(index=False).encode('utf-8')
 st.download_button(
-    label="📥   Download new finess accounts as a csv ",
+    label="📥   Download the new TAM for Radiology as a csv ",
     data=radio_csv,
     file_name=f'radio_tam_accounts_{today_date}.csv',
     mime='text/csv',
