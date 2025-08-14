@@ -9,7 +9,7 @@ from pyproj import Transformer
 
 today_date= datetime.today().strftime("%d-%m-%Y")
 
-st.markdown("<h1 style='text-align: center;'>🏢 TAM MSP 🏢</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center;'>🏥  TAM MSP 🏥</h1>", unsafe_allow_html=True)
 
 filename = "https://static.data.gouv.fr/resources/finess-extraction-du-fichier-des-etablissements/20250704-114227/etalab-cs1100507-stock-20250703-0338.csv"
 
@@ -62,9 +62,14 @@ final_scope=final[final['code_categorie'].isin(scope)]
 st.write(f'Total TAM MSP accounts = {len(final_scope)} accounts')
 
 st.dataframe(final_scope)
+st.write(' ')
+st.write(' ')
+st.write(' ')
+
+
 msp_csv=final_scope.to_csv(index=False).encode('utf-8')
 st.download_button(
-    label="📥   Download new finess accounts as a csv ",
+    label="📥   Download the new TAM for Radiology as a csv ",
     data=msp_csv,
     file_name=f'msp_tam_accounts_{today_date}.csv',
     mime='text/csv',
