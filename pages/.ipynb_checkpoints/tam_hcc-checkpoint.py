@@ -124,7 +124,7 @@ gsheet_columns= [
     "longitude", "lattitude"
 ]
 opps_columns = [
-    "finessnumber__c", "name", "phone", "adresse", "code_postal",
+    "finessnumber__c", "name", "phone", "adresse", "code_postal","ville",
     "healthcareservice type", "orga type", "siret", "label_categorie",
     "label_status", "date_ouverture", "date_update", "numero_finess_juridique"
 ]
@@ -171,8 +171,8 @@ if current_tam is not None:
     current_tam['new_establishment_this_month']=False
     new_accounts=new_accounts[gsheet_columns]
     import_gsheet = pd.concat([current_tam, new_accounts], ignore_index=True)
-    st.markdown(f'TAM to import gsheet : {len(import_gsheet)} accounts')
     st.dataframe(import_gsheet)
+    st.markdown(f'TAM to import gsheet : {len(import_gsheet)} accounts')
     csv_import_gsheet = import_gsheet.to_csv(index=False).encode('utf-8')
     st.markdown("**For DQ Projects team**")    
     st.download_button(
