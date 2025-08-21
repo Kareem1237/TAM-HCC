@@ -171,8 +171,8 @@ if current_tam is not None:
     current_tam['new_establishment_this_month']=False
     new_accounts=new_accounts[gsheet_columns]
     import_gsheet = pd.concat([current_tam, new_accounts], ignore_index=True)
-    st.dataframe(import_gsheet)
     st.markdown(f'TAM to import gsheet : {len(import_gsheet)} accounts')
+    st.dataframe(import_gsheet)
     csv_import_gsheet = import_gsheet.to_csv(index=False).encode('utf-8')
     st.markdown("**For DQ Projects team**")    
     st.download_button(
