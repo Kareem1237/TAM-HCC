@@ -313,4 +313,10 @@ if current_tam is not None:
     missing_pharmacies=missing_pharmacies.merge(activities,how='left',left_on='numero_establishment',right_on='numero_establishment')
     missing_pharmacies=missing_pharmacies.merge(pharmacists,how='left',left_on='rpps',right_on='rpps')
     st.dataframe(missing_pharmacies)
+    st.download_button(
+    label="📥   Download pharma BA ,PA and PACs as a csv ",
+    data=missing_pharmacies,
+    file_name=f'new_pharma_ba_pa_pac.csv',
+    mime='text/csv',
+    )
 
