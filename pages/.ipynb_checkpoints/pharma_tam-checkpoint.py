@@ -61,24 +61,28 @@ with zip_file.open(pac_filename) as pacs:
         sep=";",                
         engine="python"         
     ) 
-activities=activities.astype(str)
+activities=activities.astype("string")
 st.markdown("<h3 style='text-align: center;'> Order of Pharmacies </h3>", unsafe_allow_html=True)
 st.write(' ')
-pharmacies=pharmacies.astype(str)
+pharmacies=pharmacies[pharmacies['Adresse'].notnull()]
+pharmacies=pharmacies.astype("string")
 types = ["OFFICINE", "SIEGE SOCIAL PHARMACEUTIQUE", "ETS C PHARMACEU. NON SIEGE SOCIAL", "ETS B PHARMACEUT.NON SIEGE SOCIAL", "PHARMACIEN MULTI - EMPLOYEURS", "ETS BC PHARMACEU. NON SIEGE SOCIAL", "PHARMACIE MUTUALISTE", "PHARMACIE DE SECOURS MINIER", "ANTENNE D'OFFICINE"]
-pharmacies['phone'] = pharmacies['Téléphone'].apply(lambda x: '+33' + x[1:] if x.startswith('0') else x)
+pharmacies['phone'] = pharmacies['Téléphone'].apply(lambda x: '+33' + x[1:] if pd.notna(x) and x.startswith('0') else x)
 pharmacies=pharmacies.drop(columns='Téléphone',axis=1)
 pharmacies["Adresse"] = pharmacies["Adresse"].str.replace(r' {2,}', ' ', regex=True)
-pharmacies['Code postal']=pharmacies['Code postal'].apply(lambda x: '0'+x if len(x)==4 else x)
+pharmacies['Code postal']=pharmacies['Code postal'].apply(lambda x: '0'+x if pd.notna(x) and len(x)==4 else x)
 pharmacies.rename(columns={"Numéro d'établissement":'numero_establishment','Type établissement':'type','Dénomination commerciale':'denomination_commerciale','Raison sociale':'raison_sociale','Adresse':'address','Code postal':'code_postal','Département':'department'},inplace=True)
 pharmacies=pharmacies[pharmacies['type'].isin(types)]
-pharmacists=pharmacists.astype(str)
+pharmacists=pharmacists.astype("string")
 
 roles = ['PHARMACIEN TITULAIRE D\'OFFICINE', 'ADJOINT INTERMITTENT EN OFFICINE', 'ADJOINT D\'OFFICINE TEMPS PARTIEL', 'ADJOINT  INDUSTRIE', 'ADJOINT INDUSTRIE TEMPS PARTIEL', 'PHARMACIEN ADJOINT D\'OFFICINE', 'PHARMACIEN RESPONSABLE', 'PRATICIEN ADJOINT CONTRACTUEL', 'PHARMACIEN ADJOINT ES PRIVÉ T.PLEIN', 'GERANT APRES DECES DU TITULAIRE', 'PHARMACIEN SP ADJOINT VOLONTAIRE', 'PHARMACIEN ADJOINT ES PRIVÉ T.PARTI', 'ADJOINT CARMI', 'ADJOINT PHARMACIE MUTUALISTE', 'PHARMACIEN ADJOINT BPDO', 'PHARMACIEN SP ADJOINT PROFESSIONNEL', 'ADJOINT DISTRIBUTION', 'PHARMACIEN SAPEUR-POMPIER ADJOINT', 'RESPONSABLE']
 
 activities=activities[activities["Numéro d'établissement"].isin(pharmacies['numero_establishment'].unique())]
 activities=activities[activities["Fonction"].isin(roles)]
 pharmacists=pharmacists[pharmacists['n° RPPS'].isin(activities['n° RPPS pharmacien'].unique())]
+pharmacists=pharmacists.rename(columns={"n° RPPS":'rpps'})
+
+activities=activities.rename(columns={"Numéro d'établissement":'numero_establishment',"n° RPPS pharmacien":'rpps'})
 
 col1, col2 = st.columns(2)
 with col1:
@@ -125,8 +129,8 @@ geoloc = df.iloc[int(len(df)/2):]
 geoloc.drop(columns=geoloc.columns[5:], inplace=True)
 geoloc.rename(columns=lambda x: geoloc_names[list(df.columns).index(x)], inplace=True)
 df = df.iloc[:int(len(df)/2)]
-df['numero_finess'] = df['numero_finess'].astype(str)
-geoloc['numero_finess'] = geoloc['numero_finess'].astype(str)
+df['numero_finess'] = df['numero_finess'].astype("string")
+geoloc['numero_finess'] = geoloc['numero_finess'].astype("string")
 final = df.merge(geoloc, on='numero_finess', how='left')
 dico={'R':'RUE', 'PL':'PLACE', 'RTE':'ROUTE', 'AV':'AVENUE', 'GR':'GRANDE RUE', 'ALL':'ALLEE', 'CHE':'CHEMIN', 'QUA':'QUARTIER',
 'BD':'BOULEVARD', 'PROM':'PROMENADE', 'ZA':'ZONE ARTISANALE', 'QU':'QUAI', 'ESPA':'ESPACE', 'IMP':'IMPASSE', 'LD':'LIEU DIT', 'SQ':'SQUARE',
@@ -156,7 +160,7 @@ st.write(' ')
 
 
 
-pharma=pharma.astype(str)
+pharma=pharma.astype("string")
 pharma=pharma[['numero_finess','raison_sociale','adresse','code_postal','telephone']]
 pharma['raison_sociale']=pharma['raison_sociale'].str.strip()
 pharmacies['raison_sociale']=pharmacies['raison_sociale'].str.strip()
@@ -165,8 +169,8 @@ ba=pharmacies.copy()
 ba_0=ba.copy()
 ba_0.rename(columns={'raison_sociale':'name_in_order','code_postal':'code_postal_in_order'},inplace=True)
 pharma_0=pharma.copy()
-ba_0=ba_0.astype(str)
-pharma_0=pharma_0.astype(str)
+ba_0=ba_0.astype("string")
+pharma_0=pharma_0.astype("string")
 
 
 
@@ -281,4 +285,32 @@ st.write(f'💊 Order of Pharma with {len(list(order_finess_pharmas['numero_fine
 
 st.dataframe(order_finess_pharmas)
 
+current_tam = st.file_uploader("Upload the current TAM in SF as csv", type=["csv"])
+if current_tam is not None:
+    current_tam = pd.read_csv(current_tam)
+    st.markdown(f'Current tam details: {len(current_tam)} accounts')
+    st.dataframe(current_tam)  
+    
+    new_pharmacies=set(order_finess_pharmas['numero_establishment'].unique())
+    current_pharmacies=set(current_tam['current_tam_external_id'].unique())
+    
+    new_pharmacies_address=set(order_finess_pharmas['address'].unique())
+    current_pharmacies_address=set(current_tam['address'].unique())
+    new_addresses=new_pharmacies_address-current_pharmacies_address
+    
+    new_pharmacies_to_add=new_pharmacies - current_pharmacies
+    
+
+    missing_pharmacies=order_finess_pharmas[order_finess_pharmas['numero_establishment'].isin(list(new_pharmacies_to_add))]
+    
+    missing_pharmacies=missing_pharmacies[order_finess_pharmas['address'].isin(list(new_addresses))]
+
+    missing_pharmacies=missing_pharmacies.drop(columns='Fax',axis=1)
+    st.write(' ')
+    st.write('Missing pharmacies,pharmacists and activities to add:')
+
+
+    missing_pharmacies=missing_pharmacies.merge(activities,how='left',left_on='numero_establishment',right_on='numero_establishment')
+    missing_pharmacies=missing_pharmacies.merge(pharmacists,how='left',left_on='rpps',right_on='rpps')
+    st.dataframe(missing_pharmacies)
 
