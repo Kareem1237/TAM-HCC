@@ -6,6 +6,8 @@ import numpy as np
 import re
 from datetime import datetime
 from pyproj import Transformer
+import requests
+from bs4 import BeautifulSoup
 
 today_date= datetime.today().strftime("%d-%m-%Y")
 
@@ -13,7 +15,12 @@ st.markdown("<h1 style='text-align: center;'>🩻 TAM Radiology 🩻</h1>", unsa
 st.write(' ')
 st.write(' ')
 st.write(' ')
-filename = "https://static.data.gouv.fr/resources/finess-extraction-du-fichier-des-etablissements/20250704-114227/etalab-cs1100507-stock-20250703-0338.csv"
+
+url="https://www.data.gouv.fr/datasets/finess-extraction-du-fichier-des-etablissements/#_"
+page=requests.get(url)
+soup=BeautifulSoup(page.text,'html')
+url=soup.find('div',class_='flex items-center buttons').find('a')['href']
+filename = url
 
 headers = [
     'section','numero_finess','numero_finess_juridique','raison_sociale',
@@ -63,7 +70,12 @@ scope= ["698"]
 
 final_scope=final[(final['code_categorie'].isin(scope))&(~final['raison_sociale'].str.contains('DIALYSE|DOMICILE', na=False)) & (~final['code_psph'].str.contains('1', na=False))]
 
-st.write(f'Total TAM Radiology accounts = {len(final_scope)} accounts')
+text = soup.find('div', class_='flex items-center fr-mb-1v')
+date=text.find('span').find('div').get('text')[-11:-1]
+accounts_in_tam=len(final_scope['numero_finess'].unique())
+st.markdown(f'## TAM on {date}:')
+st.markdown(f'## {accounts_in_tam} accounts')
+
 st.write(' ')
 
 st.dataframe(final_scope)

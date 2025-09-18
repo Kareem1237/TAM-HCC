@@ -5,6 +5,8 @@ import numpy as np
 import re
 from datetime import datetime
 from pyproj import Transformer
+from bs4 import BeautifulSoup
+import requests
 
 
 mapping = {
@@ -37,8 +39,11 @@ mapping = {
 }
 
 st.markdown("<h1 style='text-align: center;'>🏢 TAM HCC 🏢</h1>", unsafe_allow_html=True)
-
-filename = "https://static.data.gouv.fr/resources/finess-extraction-du-fichier-des-etablissements/20250704-114227/etalab-cs1100507-stock-20250703-0338.csv"
+url="https://www.data.gouv.fr/datasets/finess-extraction-du-fichier-des-etablissements/#_"
+page=requests.get(url)
+soup=BeautifulSoup(page.text,'html')
+url=soup.find('div',class_='flex items-center buttons').find('a')['href']
+filename = url
 
 headers = [
     'section','numero_finess','numero_finess_juridique','raison_sociale',
@@ -54,6 +59,7 @@ geoloc_names = [
 ]
 
 # upload the csv
+
 df = pd.read_csv(filename,sep=';', skiprows=1, header=None, names=headers,
                 encoding='utf-8')
 df.drop(columns=['section'], inplace=True)
@@ -128,9 +134,11 @@ opps_columns = [
     "healthcareservice type", "orga type", "siret", "label_categorie",
     "label_status", "date_ouverture", "date_update", "numero_finess_juridique"
 ]
-today_date= datetime.today().strftime("%d-%m-%Y")
+text = soup.find('div', class_='flex items-center fr-mb-1v')
+date=text.find('span').find('div').get('text')[-11:-1]
+#today_date= datetime.today().strftime("%d-%m-%Y")
 accounts_in_tam=len(new_tam['numero_finess'].unique())
-st.markdown(f'## Total accounts in TAM on {today_date}:')
+st.markdown(f'## Total accounts in TAM on {date}:')
 st.markdown(f'## {accounts_in_tam} accounts')
 
 st.markdown('### New TAM details: ')

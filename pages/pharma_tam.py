@@ -7,6 +7,10 @@ import numpy as np
 import re
 from datetime import datetime
 from pyproj import Transformer
+import requests
+from bs4 import BeautifulSoup
+
+
 st.set_page_config(layout="wide")
 st.markdown("<h1 style='text-align: center;'>⚕️ TAM Pharma ⚕️</h1>", unsafe_allow_html=True)
 st.write(' ')
@@ -92,8 +96,12 @@ st.dataframe(activities)
 
 
 # FINESS DATABASE
+url="https://www.data.gouv.fr/datasets/finess-extraction-du-fichier-des-etablissements/#_"
+page=requests.get(url)
+soup=BeautifulSoup(page.text,'html')
+url=soup.find('div',class_='flex items-center buttons').find('a')['href']
+filename = url
 
-filename = "https://static.data.gouv.fr/resources/finess-extraction-du-fichier-des-etablissements/20250704-114227/etalab-cs1100507-stock-20250703-0338.csv"
 
 headers = [
     'section','numero_finess','numero_finess_juridique','raison_sociale',
