@@ -136,9 +136,9 @@ opps_columns = [
 ]
 text = soup.find('div', class_='flex items-center fr-mb-1v')
 date=text.find('span').find('div').get('text')[-11:-1]
-#today_date= datetime.today().strftime("%d-%m-%Y")
+today_date= datetime.today().strftime("%d-%m-%Y")
 accounts_in_tam=len(new_tam['numero_finess'].unique())
-st.markdown(f'## Total accounts in TAM on {date}:')
+st.markdown(f'## TAM on {date}:')
 st.markdown(f'## {accounts_in_tam} accounts')
 
 st.markdown('### New TAM details: ')
