@@ -289,30 +289,43 @@ current_tam = st.file_uploader("Upload the current TAM in SF as csv", type=["csv
 if current_tam is not None:
     current_tam = pd.read_csv(current_tam)
     st.markdown(f'Current tam details: {len(current_tam)} accounts')
-    st.dataframe(current_tam)  
+    #st.dataframe(current_tam)  
     
     new_pharmacies=set(order_finess_pharmas['numero_establishment'].unique())
     current_pharmacies=set(current_tam['current_tam_external_id'].unique())
+    new_pharmacies_to_add=new_pharmacies - current_pharmacies
     
     new_pharmacies_address=set(order_finess_pharmas['address'].unique())
     current_pharmacies_address=set(current_tam['address'].unique())
     new_addresses=new_pharmacies_address-current_pharmacies_address
     
-    new_pharmacies_to_add=new_pharmacies - current_pharmacies
+    
     
 
     missing_pharmacies=order_finess_pharmas[order_finess_pharmas['numero_establishment'].isin(list(new_pharmacies_to_add))]
     
-    missing_pharmacies=missing_pharmacies[order_finess_pharmas['address'].isin(list(new_addresses))]
+    missing_pharmacies=missing_pharmacies[missing_pharmacies['address'].isin(list(new_addresses))]
 
     missing_pharmacies=missing_pharmacies.drop(columns='Fax',axis=1)
+    pharmacies_to_create=missing_pharmacies.copy().drop_duplicates()
     st.write(' ')
-    st.write('Missing pharmacies,pharmacists and activities to add:')
+    st.write(f'missing pharmacies to create: {len(pharmacies_to_create)}')
+    st.dataframe(pharmacies_to_create)
+    #st.write('Missing pharmacies,pharmacists and activities to add:')
 
 
     missing_pharmacies=missing_pharmacies.merge(activities,how='left',left_on='numero_establishment',right_on='numero_establishment')
     missing_pharmacies=missing_pharmacies.merge(pharmacists,how='left',left_on='rpps',right_on='rpps')
-    st.dataframe(missing_pharmacies)
+    pharmacies_to_create=missing_pharmacies
+
+    missing_activities=missing_pharmacies[['numero_establishment','rpps','Fonction']].drop_duplicates()
+    associated_pharmacists=missing_pharmacies[['rpps','Prénom','Nom de naissance']].drop_duplicates()
+    st.write('missing activities')
+    st.dataframe(missing_activities)
+    st.write(' ')
+    st.write('pharmacists information')
+    st.dataframe(associated_pharmacists)
+    #st.dataframe(missing_pharmacies)
     csv=missing_pharmacies.to_csv(index=False).encode('utf-8')
     st.download_button(
     label="📥   Download pharma BA ,PA and PACs as a csv ",
