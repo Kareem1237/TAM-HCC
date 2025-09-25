@@ -286,45 +286,65 @@ st.write(f'💊 Order of Pharma with {len(list(order_finess_pharmas['numero_fine
 st.dataframe(order_finess_pharmas)
 
 current_tam = st.file_uploader("Upload the current TAM in SF as csv", type=["csv"])
-if current_tam is not None:
+current_pharmacists=st.file_uploader("Upload the pharmacists in SF as csv",type=['csv'])
+
+if current_tam is not None and current_pharmacists is not None :
     current_tam = pd.read_csv(current_tam)
+    current_pharmacists=pd.read_csv(current_pharmacists)
     st.markdown(f'Current tam details: {len(current_tam)} accounts')
     #st.dataframe(current_tam)  
     
-    new_pharmacies=set(order_finess_pharmas['numero_establishment'].unique())
-    current_pharmacies=set(current_tam['current_tam_external_id'].unique())
-    new_pharmacies_to_add=new_pharmacies - current_pharmacies
-    
-    new_pharmacies_address=set(order_finess_pharmas['address'].unique())
-    current_pharmacies_address=set(current_tam['address'].unique())
+    new_pharmacies_external_id=set(order_finess_pharmas['numero_establishment'].dropna().unique())
+    new_pharmacies_finess=set(order_finess_pharmas['numero_finess'].dropna().unique())
+    new_pharmacies_address=set(order_finess_pharmas['address'].dropna().str.lower().unique())
+
+    current_pharmacies_external_id=set(current_tam['external_id'].dropna().unique())
+    current_pharmacies_finess=set(current_tam['numero_finess'].dropna().unique())
+    current_pharmacies_address=set(current_tam['street'].dropna().unique())
+                              
+    new_external_id=new_pharmacies_external_id - current_pharmacies_external_id
+    new_finess=new_pharmacies_finess-current_pharmacies_finess
     new_addresses=new_pharmacies_address-current_pharmacies_address
     
-    
-    
-
-    missing_pharmacies=order_finess_pharmas[order_finess_pharmas['numero_establishment'].isin(list(new_pharmacies_to_add))]
-    
-    missing_pharmacies=missing_pharmacies[missing_pharmacies['address'].isin(list(new_addresses))]
-
+    missing_pharmacies=order_finess_pharmas[order_finess_pharmas['numero_establishment'].isin(list(new_external_id))]
+    missing_pharmacies=missing_pharmacies[missing_pharmacies['numero_finess'].isin(list(new_finess))]
+    missing_pharmacies=missing_pharmacies[missing_pharmacies['address'].str.lower().isin(list(new_addresses))]
     missing_pharmacies=missing_pharmacies.drop(columns='Fax',axis=1)
+    
     pharmacies_to_create=missing_pharmacies.copy().drop_duplicates()
     st.write(' ')
-    st.write(f'missing pharmacies to create: {len(pharmacies_to_create)}')
+    st.write(f'## Missing pharmacies to create: {len(pharmacies_to_create)}')
+    pharmacies_to_create.rename(columns={'numero_establishment':'external_id','numero_finess':'finessnumber__c','raison_sociale':'name',
+                                         'address':'billingstreet','code_postal':'billingpostalcode','Commune':'billingcity'},inplace=True)
+    pharmacies_to_create=pharmacies_to_create[['external_id','finessnumber__c','name','billingstreet','billingpostalcode','billingcity','phone']]
+    pharmacies_to_create['recordtype']='0121i000000kJpkAAE'
+    pharmacies_to_create['organisationtype__c']='Pharmacy'
+    pharmacies_to_create['billingcountrycode']='FR'
     st.dataframe(pharmacies_to_create)
     #st.write('Missing pharmacies,pharmacists and activities to add:')
 
 
     missing_pharmacies=missing_pharmacies.merge(activities,how='left',left_on='numero_establishment',right_on='numero_establishment')
     missing_pharmacies=missing_pharmacies.merge(pharmacists,how='left',left_on='rpps',right_on='rpps')
-    pharmacies_to_create=missing_pharmacies
 
     missing_activities=missing_pharmacies[['numero_establishment','rpps','Fonction']].drop_duplicates()
-    associated_pharmacists=missing_pharmacies[['rpps','Prénom','Nom de naissance']].drop_duplicates()
-    st.write('missing activities')
+    current_pharmacists['rpps'] = current_pharmacists['rppsnumber__c'].astype('string')
+    missing_activities['rpps'] = missing_activities['rpps'].astype('string')
+    missing_activities=missing_activities.merge(current_pharmacists[['id','rpps']],how='left',left_on='rpps',right_on='rpps')
+    rpps_found=list(missing_activities[missing_activities['id'].isnull()]['rpps'].unique())
+    pharmacists_to_create=missing_pharmacies[missing_pharmacies['rpps'].isin(rpps_found)&missing_pharmacies['rpps'].notnull()][['rpps','Prénom','Nom de naissance']].drop_duplicates()
+    pharmacists_to_create.rename(columns={'rpps':'rppsnumber__c','Prénom':'firstname','Nom de naissance':'lastname'},inplace=True)
+    pharmacists_to_create['specialty__c']='a0h1i000000niyxAAA'
+    
+    st.write('## Pharmacists to create: ')
+    st.dataframe(pharmacists_to_create)
+    st.write(' ')
+    st.write('## Activities to create: ')
+    missing_activities.rename(columns={'numero_establishment':'external_id','rpps':'rppsnumber__c','Fonction':'roleintheworkplace__c','id':'personaccount_id'},inplace=True)
+    missing_activities=missing_activities[missing_activities['rppsnumber__c'].notnull()]
     st.dataframe(missing_activities)
     st.write(' ')
-    st.write('pharmacists information')
-    st.dataframe(associated_pharmacists)
+
     #st.dataframe(missing_pharmacies)
     csv=missing_pharmacies.to_csv(index=False).encode('utf-8')
     st.download_button(
