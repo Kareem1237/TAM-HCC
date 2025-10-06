@@ -322,7 +322,13 @@ if current_tam is not None and current_pharmacists is not None :
     pharmacies_to_create['billingcountrycode']='FR'
     st.dataframe(pharmacies_to_create)
     #st.write('Missing pharmacies,pharmacists and activities to add:')
-
+    csv=pharmacies_to_create.to_csv(index=False).encode('utf-8')
+    st.download_button(
+    label="📥   Download pharmacies to create ",
+    data=csv,
+    file_name=f'new_pharma_ba.csv',
+    mime='text/csv',
+    )
 
     missing_pharmacies=missing_pharmacies.merge(activities,how='left',left_on='numero_establishment',right_on='numero_establishment')
     missing_pharmacies=missing_pharmacies.merge(pharmacists,how='left',left_on='rpps',right_on='rpps')
@@ -338,11 +344,26 @@ if current_tam is not None and current_pharmacists is not None :
     
     st.write('## Pharmacists to create: ')
     st.dataframe(pharmacists_to_create)
+    csv=pharmacists_to_create.to_csv(index=False).encode('utf-8')
+    st.download_button(
+    label="📥   Download pharmacies to create ",
+    data=csv,
+    file_name=f'new_pharmacists_pa.csv',
+    mime='text/csv',
+    )
+    
     st.write(' ')
     st.write('## Activities to create: ')
     missing_activities.rename(columns={'numero_establishment':'external_id','rpps':'rppsnumber__c','Fonction':'roleintheworkplace__c','id':'personaccount_id'},inplace=True)
     missing_activities=missing_activities[missing_activities['rppsnumber__c'].notnull()]
     st.dataframe(missing_activities)
+    csv=missing_activities.to_csv(index=False).encode('utf-8')
+    st.download_button(
+    label="📥   Download missing activities to create ",
+    data=csv,
+    file_name=f'new_pharmacists_pa.csv',
+    mime='text/csv',
+    )
     st.write(' ')
 
     #st.dataframe(missing_pharmacies)
