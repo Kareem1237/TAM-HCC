@@ -346,7 +346,7 @@ if current_tam is not None and current_pharmacists is not None :
     st.dataframe(pharmacists_to_create)
     csv=pharmacists_to_create.to_csv(index=False).encode('utf-8')
     st.download_button(
-    label="📥   Download pharmacies to create ",
+    label="📥   Download pharmacists to create ",
     data=csv,
     file_name=f'new_pharmacists_pa.csv',
     mime='text/csv',
@@ -366,12 +366,4 @@ if current_tam is not None and current_pharmacists is not None :
     )
     st.write(' ')
 
-    #st.dataframe(missing_pharmacies)
-    csv=missing_pharmacies.to_csv(index=False).encode('utf-8')
-    st.download_button(
-    label="📥   Download pharma BA ,PA and PACs as a csv ",
-    data=csv,
-    file_name=f'new_pharma_ba_pa_pac.csv',
-    mime='text/csv',
-    )
 
