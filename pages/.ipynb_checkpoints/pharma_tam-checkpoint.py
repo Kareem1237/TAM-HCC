@@ -291,8 +291,23 @@ current_pharmacists=st.file_uploader("Upload the pharmacists in SF as csv",type=
 if current_tam is not None and current_pharmacists is not None :
     current_tam = pd.read_csv(current_tam)
     current_pharmacists=pd.read_csv(current_pharmacists)
-    st.markdown(f'Current tam details: {len(current_tam)} accounts')
+    st.markdown(f'Current tam details: {len(current_tam['external_id'].unique())} accounts')
     #st.dataframe(current_tam)  
+    missing_activities_current_tam = (
+    activities[['numero_establishment', 'rpps', 'Fonction']].merge(
+        current_tam[['external_id', 'pa_rpps']],
+        how='left',
+        left_on=['numero_establishment', 'rpps'],
+        right_on=['external_id', 'pa_rpps']
+     )
+     )
+    missing_activities_current_tam = missing_activities_current_tam[
+    (missing_activities_current_tam['numero_establishment'].isin(
+        current_tam['external_id'].unique()
+    )) 
+    & 
+    (missing_activities_current_tam['external_id'].isna())
+    ][['numero_establishment','rpps','Fonction']]
     
     new_pharmacies_external_id=set(order_finess_pharmas['numero_establishment'].dropna().unique())
     new_pharmacies_finess=set(order_finess_pharmas['numero_finess'].dropna().unique())
@@ -331,14 +346,22 @@ if current_tam is not None and current_pharmacists is not None :
     )
 
     missing_pharmacies=missing_pharmacies.merge(activities,how='left',left_on='numero_establishment',right_on='numero_establishment')
+
+    
     missing_pharmacies=missing_pharmacies.merge(pharmacists,how='left',left_on='rpps',right_on='rpps')
 
     missing_activities=missing_pharmacies[['numero_establishment','rpps','Fonction']].drop_duplicates()
+    missing_activities=pd.concat([missing_activities,missing_activities_current_tam])
+    missing_activities=missing_activities.drop_duplicates()
+
     current_pharmacists['rpps'] = current_pharmacists['rppsnumber__c'].astype('string')
     missing_activities['rpps'] = missing_activities['rpps'].astype('string')
     missing_activities=missing_activities.merge(current_pharmacists[['id','rpps']],how='left',left_on='rpps',right_on='rpps')
+
     rpps_found=list(missing_activities[missing_activities['id'].isnull()]['rpps'].unique())
-    pharmacists_to_create=missing_pharmacies[missing_pharmacies['rpps'].isin(rpps_found)&missing_pharmacies['rpps'].notnull()][['rpps','Prénom','Nom de naissance']].drop_duplicates()
+    pharmacists_to_create=missing_activities[missing_activities['rpps'].isin(rpps_found)&missing_activities['rpps'].notnull()].drop_duplicates()
+    pharmacists_to_create=pharmacists_to_create.merge(pharmacists[['rpps','Prénom','Nom de naissance']],how='inner',on='rpps')
+    pharmacists_to_create=pharmacists_to_create[['rpps','Prénom','Nom de naissance']]
     pharmacists_to_create.rename(columns={'rpps':'rppsnumber__c','Prénom':'firstname','Nom de naissance':'lastname'},inplace=True)
     pharmacists_to_create['specialty__c']='a0h1i000000niyxAAA'
     
