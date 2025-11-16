@@ -288,11 +288,46 @@ st.dataframe(order_finess_pharmas)
 current_tam = st.file_uploader("Upload the current TAM in SF as csv", type=["csv"])
 current_pharmacists=st.file_uploader("Upload the pharmacists in SF as csv",type=['csv'])
 
-if current_tam is not None and current_pharmacists is not None :
+def check_pac_status(row):
+    if row["pa_rpps"] in row["all_rpps_in_pharmacy"]:
+        x='Active'
+    else:
+        x='Inactive'
+    return x
+    
+
+if current_tam is not None and current_pharmacists is not None:
     current_tam = pd.read_csv(current_tam)
-    current_pharmacists=pd.read_csv(current_pharmacists)
-    st.markdown(f'Current tam details: {len(current_tam['external_id'].unique())} accounts')
-    #st.dataframe(current_tam)  
+    current_pharmacists = pd.read_csv(current_pharmacists)
+
+    st.markdown(f"Current tam details: {len(current_tam['external_id'].unique())} accounts")
+
+    # ---- Updating pac status for existing pharmacy-pharmacist combination --------#
+    rpps_per_estab = activities.groupby("numero_establishment")["rpps"].agg(list)
+
+    activities["all_rpps_in_pharmacy"] = activities["numero_establishment"].map(rpps_per_estab)
+    current_tam_pac=current_tam[current_tam['pa_rpps'].notna()]
+    pac_check_df = current_tam_pac[['external_id', 'pa_rpps', 'pac_id']].merge(
+        activities[['numero_establishment', 'all_rpps_in_pharmacy', 'rpps']],
+        how='inner',
+        left_on=['external_id'],
+        right_on=['numero_establishment']
+    )
+
+    pac_check_df['obsoleteprofessionalactivity__c'] = pac_check_df.apply(check_pac_status, axis=1)
+    st.write('# Update current PACs status')
+    inactive_df = pac_check_df[
+    pac_check_df['obsoleteprofessionalactivity__c'] == 'Inactive'
+][['pac_id', 'obsoleteprofessionalactivity__c']].reset_index(drop=True)
+
+    st.dataframe(inactive_df)
+    csv=inactive_df.to_csv(index=False).encode('utf-8')
+    st.download_button(
+    label="📥   Download Updated PAC status ",
+    data=csv,
+    file_name=f'pac_status_update.csv',
+    mime='text/csv',
+    )
     missing_activities_current_tam = (
     activities[['numero_establishment', 'rpps', 'Fonction']].merge(
         current_tam[['external_id', 'pa_rpps']],
