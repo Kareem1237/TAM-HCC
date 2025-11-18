@@ -299,6 +299,9 @@ def check_pac_status(row):
 if current_tam is not None and current_pharmacists is not None:
     current_tam = pd.read_csv(current_tam)
     current_pharmacists = pd.read_csv(current_pharmacists)
+    current_tam_w_rpps=current_tam[current_tam['pa_rpps'].notna()]
+    current_tam_w_rpps['ba-pa']=current_tam_w_rpps['external_id']+"-"+current_tam_w_rpps['pa_rpps']
+    pa_ba_combo=set(current_tam_w_rpps['ba-pa'].unique())
 
     st.markdown(f"Current tam details: {len(current_tam['external_id'].unique())} accounts")
 
@@ -307,21 +310,24 @@ if current_tam is not None and current_pharmacists is not None:
 
     activities["all_rpps_in_pharmacy"] = activities["numero_establishment"].map(rpps_per_estab)
     current_tam_pac=current_tam[current_tam['pa_rpps'].notna()]
-    pac_check_df = current_tam_pac[['external_id', 'pa_rpps', 'pac_id']].merge(
+    pac_check_df = current_tam_pac[['external_id', 'pa_rpps', 'pac_id','pac_status']].merge(
         activities[['numero_establishment', 'all_rpps_in_pharmacy', 'rpps']],
         how='inner',
         left_on=['external_id'],
         right_on=['numero_establishment']
     )
 
-    pac_check_df['obsoleteprofessionalactivity__c'] = pac_check_df.apply(check_pac_status, axis=1)
+    pac_check_df['new_status'] = pac_check_df.apply(check_pac_status, axis=1)
     st.write('# Update current PACs status')
-    inactive_df = pac_check_df[
-    pac_check_df['obsoleteprofessionalactivity__c'] == 'Inactive'
-][['pac_id', 'obsoleteprofessionalactivity__c']].reset_index(drop=True)
+    pac_status_change_df = pac_check_df[
+    pac_check_df['pac_status'] != pac_check_df['new_status']
+][['pac_id', 'new_status']].reset_index(drop=True)
+    
+    pac_status_change_df.rename(columns={'new_status':'obsoleteprofessionalactivity__c'},inplace=True)
+    pac_status_change_df=pac_status_change_df.drop_duplicates()
 
-    st.dataframe(inactive_df)
-    csv=inactive_df.to_csv(index=False).encode('utf-8')
+    st.dataframe(pac_status_change_df.reset_index())
+    csv=pac_status_change_df.to_csv(index=False).encode('utf-8')
     st.download_button(
     label="📥   Download Updated PAC status ",
     data=csv,
@@ -370,7 +376,8 @@ if current_tam is not None and current_pharmacists is not None:
     pharmacies_to_create['recordtype']='0121i000000kJpkAAE'
     pharmacies_to_create['organisationtype__c']='Pharmacy'
     pharmacies_to_create['billingcountrycode']='FR'
-    st.dataframe(pharmacies_to_create)
+    pharmacies_to_create=pharmacies_to_create.drop_duplicates()
+    st.dataframe(pharmacies_to_create.reset_index())
     #st.write('Missing pharmacies,pharmacists and activities to add:')
     csv=pharmacies_to_create.to_csv(index=False).encode('utf-8')
     st.download_button(
@@ -401,7 +408,8 @@ if current_tam is not None and current_pharmacists is not None:
     pharmacists_to_create['specialty__c']='a0h1i000000niyxAAA'
     
     st.write('## Pharmacists to create: ')
-    st.dataframe(pharmacists_to_create)
+    pharmacists_to_create=pharmacists_to_create.drop_duplicates()
+    st.dataframe(pharmacists_to_create.reset_index())
     csv=pharmacists_to_create.to_csv(index=False).encode('utf-8')
     st.download_button(
     label="📥   Download pharmacists to create ",
@@ -414,12 +422,15 @@ if current_tam is not None and current_pharmacists is not None:
     st.write('## Activities to create: ')
     missing_activities.rename(columns={'numero_establishment':'external_id','rpps':'rppsnumber__c','Fonction':'roleintheworkplace__c','id':'personaccount_id'},inplace=True)
     missing_activities=missing_activities[missing_activities['rppsnumber__c'].notnull()]
-    st.dataframe(missing_activities)
+    missing_activities['ba-pa']=missing_activities['external_id']+"-"+missing_activities['rppsnumber__c']
+    missing_activities=missing_activities[~missing_activities['ba-pa'].isin(pa_ba_combo)]
+    missing_activities=missing_activities.drop_duplicates()    
+    st.dataframe(missing_activities.drop('ba-pa', axis=1).reset_index())
     csv=missing_activities.to_csv(index=False).encode('utf-8')
     st.download_button(
     label="📥   Download missing activities to create ",
     data=csv,
-    file_name=f'new_pharmacists_pa.csv',
+    file_name=f'new_activities_to_create_pac.csv',
     mime='text/csv',
     )
     st.write(' ')
