@@ -470,6 +470,54 @@ st.write(
 st.dataframe(order_finess_pharmas)
 
 # ============================================================================
+# PHARMACIES To add to gsheet
+# ============================================================================
+pharmacies_table = order_finess_pharmas.copy()
+
+# Filter to only include specific pharmacy types
+pharmacies_table = pharmacies_table[pharmacies_table['type'].isin(types)]
+
+# Rename columns to match requested format
+pharmacies_table = pharmacies_table.rename(columns={
+    'code_postal': 'postal_code',
+    'Commune': 'commune',
+    'Région': 'region',
+    'phone': 'telephone',
+    'Fax': 'fax'
+})
+
+# Select and reorder columns as requested
+pharmacies_table_columns = [
+    'numero_establishment',
+    'type',
+    'denomination_commerciale',
+    'raison_sociale',
+    'address',
+    'postal_code',
+    'commune',
+    'department',
+    'region',
+    'telephone',
+    'fax'
+]
+
+# Check if all columns exist, create missing ones
+for col in pharmacies_table_columns:
+    if col not in pharmacies_table.columns:
+        pharmacies_table[col] = ''
+
+# Add 'level' column (empty for now, can be populated if needed)
+pharmacies_table['level'] = ''
+
+# Select only the requested columns in the correct order
+pharmacies_table = pharmacies_table[pharmacies_table_columns + ['level']]
+
+st.write(' ')
+st.write(' ')
+st.markdown('### 📋 Pharmacies Table')
+st.dataframe(pharmacies_table, use_container_width=True)
+
+# ============================================================================
 # FILE UPLOADERS
 # ============================================================================
 current_tam = st.file_uploader("Upload the current TAM in SF as csv", type=["csv"])
