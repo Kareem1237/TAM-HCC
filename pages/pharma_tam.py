@@ -424,6 +424,16 @@ if current_tam is not None and current_pharmacists is not None:
     missing_activities=missing_activities[missing_activities['rppsnumber__c'].notnull()]
     missing_activities['ba-pa']=missing_activities['external_id']+"-"+missing_activities['rppsnumber__c']
     missing_activities=missing_activities[~missing_activities['ba-pa'].isin(pa_ba_combo)]
+    
+    # Add pharmacy Salesforce ID by merging with current_tam
+    missing_activities = missing_activities.merge(
+        current_tam[['external_id', 'id']],
+        how='left',
+        on='external_id',
+        suffixes=('', '_pharmacy')
+    )
+    missing_activities.rename(columns={'id': 'businessaccount_id'}, inplace=True)
+    
     missing_activities=missing_activities.drop_duplicates()    
     st.dataframe(missing_activities.drop('ba-pa', axis=1).reset_index())
     csv=missing_activities.to_csv(index=False).encode('utf-8')
