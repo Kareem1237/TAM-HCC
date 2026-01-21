@@ -62,14 +62,14 @@ if df_file and specs_file and agendas_file:
         'email':'email_sheet'
     }, inplace=True)
 
-    specs = specs[specs['job']=='practitioner']
-    specs = specs[specs['agenda_owner'].isna()]
-    specs = specs[specs['sf_status']!='Customer']
+    specs = specs[specs['job']=='practitioner'].copy()
+    specs = specs[specs['agenda_owner'].isna()].copy()
+    specs = specs[specs['sf_status']!='Customer'].copy()
     specs = specs[['name_metabase','email_metabase','phone_metabase',
                    'organization_id_metabase','agenda_owner','sf_status',
                    'account_id','agenda_id','job','sf_id','owner_name',
                    'agenda_specialty','agenda_specialty_sub_group',
-                   'sf_account_specialty.1']]
+                   'sf_account_specialty.1']].copy()
 
     df = df[['substitute_id_sheet','name_sheet','email_sheet',
              'phone_sheet','organization_id_sheet','status']]
@@ -84,8 +84,8 @@ if df_file and specs_file and agendas_file:
     specs_clean = specs.dropna(subset=['phone_metabase']).copy()
     df_clean = df.dropna(subset=['phone_sheet']).copy()
 
-    specs_clean['phone_metabase'] = specs_clean['phone_metabase'].astype(str)
-    df_clean['phone_sheet'] = df_clean['phone_sheet'].astype(str)
+    specs_clean.loc[:, 'phone_metabase'] = specs_clean['phone_metabase'].astype(str)
+    df_clean.loc[:, 'phone_sheet'] = df_clean['phone_sheet'].astype(str)
 
     merged_phone = specs_clean.merge(
         df_clean,
