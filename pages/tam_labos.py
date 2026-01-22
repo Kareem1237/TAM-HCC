@@ -549,7 +549,7 @@ with tab1:
                 _, df_selas_export, exclues = compute_selas_creation(fin_etabs, fin_juridique, df_selas_sf)
 
                 st.success(f"SELAS export: {len(df_selas_export)}")
-                st.dataframe(df_selas_export.head(20), use_container_width=True)
+                st.dataframe(df_selas_export.head(20), width='stretch')
 
                 csv_bytes, filename = export_df_download(df_selas_export, "selas_to_create")
                 if csv_bytes:
@@ -582,7 +582,7 @@ with tab2:
                     compute_labs_and_hierarchy(fin_etabs, fin_juridique, df_labs_sf, df_selas_sf)
 
                 st.subheader("Export – New Labs")
-                st.dataframe(df_labs_export.head(20), use_container_width=True)
+                st.dataframe(df_labs_export.head(20), width='stretch')
                 csv_labs, filename_labs = export_df_download(df_labs_export, "labs_to_create")
                 if csv_labs:
                     st.download_button("📥 Download CSV Labs", data=csv_labs, file_name=filename_labs, mime="text/csv")
@@ -595,7 +595,7 @@ with tab2:
                 st.subheader("Hierarchy Control")
 
                 if len(df_hierarchy_update) > 0:
-                    st.dataframe(df_hierarchy_update.head(20), use_container_width=True)
+                    st.dataframe(df_hierarchy_update.head(20), width='stretch')
                     csv_h, filename_h = export_df_download(df_hierarchy_update, "labs_hierarchy_update")
                     st.download_button("📥 Download CSV Hierarchy", data=csv_h, file_name=filename_h, mime="text/csv")
                     st.caption("This file contains lab_id, old/new selas (id/finess) to be updated.")
@@ -689,7 +689,7 @@ with tab4:
                 st.success(f"✅ FINESS Labs database loaded: {len(fin_etabs_labs)} laboratories found")
                 
                 # Display preview
-                st.dataframe(fin_etabs_labs.head(20), use_container_width=True)
+                st.dataframe(fin_etabs_labs.head(20), width='stretch')
                 
                 # Generate download
                 csv_bytes, filename = export_df_download(fin_etabs_labs, "finess_labs_database")

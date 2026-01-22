@@ -1,6 +1,4 @@
 import streamlit as st
-
-import streamlit as st
 import pandas as pd
 import numpy as np
 import re
@@ -14,8 +12,8 @@ today_date= datetime.today().strftime("%d-%m-%Y")
 
 st.markdown("<h1 style='text-align: center;'>🏥  TAM MSP 🏥</h1>", unsafe_allow_html=True)
 url="https://www.data.gouv.fr/datasets/finess-extraction-du-fichier-des-etablissements/#_"
-page=requests.get(url)
-soup=BeautifulSoup(page.text,'html')
+page=requests.get(url, timeout=60)
+soup=BeautifulSoup(page.text, 'html.parser')
 url=soup.find('div',class_='flex items-center buttons').find('a')['href']
 filename = url
 
@@ -34,12 +32,12 @@ geoloc_names = [
 
 # upload the csv
 df = pd.read_csv(filename,sep=';', skiprows=1, header=None, names=headers,
-                encoding='utf-8')
+                encoding='utf-8', low_memory=False)
 df.drop(columns=['section'], inplace=True)
-geoloc = df.iloc[int(len(df)/2):]
+geoloc = df.iloc[int(len(df)/2):].copy()
 geoloc.drop(columns=geoloc.columns[5:], inplace=True)
 geoloc.rename(columns=lambda x: geoloc_names[list(df.columns).index(x)], inplace=True)
-df = df.iloc[:int(len(df)/2)]
+df = df.iloc[:int(len(df)/2)].copy()
 df['numero_finess'] = df['numero_finess'].astype(str)
 geoloc['numero_finess'] = geoloc['numero_finess'].astype(str)
 final = df.merge(geoloc, on='numero_finess', how='left')
@@ -51,8 +49,8 @@ dico={'R':'RUE', 'PL':'PLACE', 'RTE':'ROUTE', 'AV':'AVENUE', 'GR':'GRANDE RUE', 
 final.replace({"voie_type": dico},inplace=True)
 final['raison_sociale']=final['raison_sociale'].apply(lambda x : str(x).replace('.0','').replace('nan',''))
 final['adresse']=final['voie_numero'].apply(lambda x : str(x).replace('.0','').replace('nan',''))+final['voie_complement'].apply(lambda x : str(x).replace('.0','').replace('nan',''))+ ' ' + final['voie_type'] + ' ' + final['voie_label']
-final['code_postal']=final['ligne_acheminement'].apply(lambda x: str(re.search('\d\d\d\d\d|$',str(x))[0]))
-final['ville']=final['ligne_acheminement'].apply(lambda x: re.split('\d\d\d\d\d|$',str(x))[1].strip(' '))
+final['code_postal']=final['ligne_acheminement'].apply(lambda x: str(re.search(r'\d\d\d\d\d|$',str(x))[0]))
+final['ville']=final['ligne_acheminement'].apply(lambda x: re.split(r'\d\d\d\d\d|$',str(x))[1].strip(' '))
 final.rename(columns={"ligne_acheminement": "libelle_routage"},inplace=True)
 final['telephone']=final['telephone'].apply(lambda x : ('+33' + str(x).replace('.0','')).replace('+33nan',''))
 final['fax']=final['fax'].apply(lambda x : ('+33' + str(x).replace('.0','')).replace('+33nan',''))

@@ -40,8 +40,8 @@ mapping = {
 
 st.markdown("<h1 style='text-align: center;'>🏢 TAM HCC 🏢</h1>", unsafe_allow_html=True)
 url="https://www.data.gouv.fr/datasets/finess-extraction-du-fichier-des-etablissements/#_"
-page=requests.get(url)
-soup=BeautifulSoup(page.text,'html')
+page=requests.get(url, timeout=60)
+soup=BeautifulSoup(page.text, 'html.parser')
 url=soup.find('div',class_='flex items-center buttons').find('a')['href']
 filename = url
 
@@ -61,12 +61,12 @@ geoloc_names = [
 # upload the csv
 
 df = pd.read_csv(filename,sep=';', skiprows=1, header=None, names=headers,
-                encoding='utf-8')
+                encoding='utf-8', low_memory=False)
 df.drop(columns=['section'], inplace=True)
-geoloc = df.iloc[int(len(df)/2):]
+geoloc = df.iloc[int(len(df)/2):].copy()
 geoloc.drop(columns=geoloc.columns[5:], inplace=True)
 geoloc.rename(columns=lambda x: geoloc_names[list(df.columns).index(x)], inplace=True)
-df = df.iloc[:int(len(df)/2)]
+df = df.iloc[:int(len(df)/2)].copy()
 df['numero_finess'] = df['numero_finess'].astype(str)
 geoloc['numero_finess'] = geoloc['numero_finess'].astype(str)
 final = df.merge(geoloc, on='numero_finess', how='left')
@@ -78,8 +78,8 @@ dico={'R':'RUE', 'PL':'PLACE', 'RTE':'ROUTE', 'AV':'AVENUE', 'GR':'GRANDE RUE', 
 final.replace({"voie_type": dico},inplace=True)
 final['raison_sociale']=final['raison_sociale'].apply(lambda x : str(x).replace('.0','').replace('nan',''))
 final['adresse']=final['voie_numero'].apply(lambda x : str(x).replace('.0','').replace('nan',''))+final['voie_complement'].apply(lambda x : str(x).replace('.0','').replace('nan',''))+ ' ' + final['voie_type'] + ' ' + final['voie_label']
-final['code_postal']=final['ligne_acheminement'].apply(lambda x: str(re.search('\d\d\d\d\d|$',str(x))[0]))
-final['ville']=final['ligne_acheminement'].apply(lambda x: re.split('\d\d\d\d\d|$',str(x))[1].strip(' '))
+final['code_postal']=final['ligne_acheminement'].apply(lambda x: str(re.search(r'\d\d\d\d\d|$',str(x))[0]))
+final['ville']=final['ligne_acheminement'].apply(lambda x: re.split(r'\d\d\d\d\d|$',str(x))[1].strip(' '))
 final.rename(columns={"ligne_acheminement": "libelle_routage"},inplace=True)
 final['telephone']=final['telephone'].apply(lambda x : ('+33' + str(x).replace('.0','')).replace('+33nan',''))
 final['fax']=final['fax'].apply(lambda x : ('+33' + str(x).replace('.0','')).replace('+33nan',''))
@@ -89,7 +89,7 @@ final['code_status']=final['code_status'].apply(lambda x : str(x).replace('.0','
 final['code_psph']=final['code_psph'].apply(lambda x : str(x).replace('.0','').replace('nan',''))
 final['ape']=final['ape'].apply(lambda x : str(x).replace(' ','').replace('nan',''))
 to_keep=['numero_finess','siret','ape','raison_sociale','raison_sociale_long','distribution_complement','adresse','lieu_dit_bp','code_postal','ville','telephone','fax','code_categorie','label_categorie','code_status','label_status','code_psph','date_ouverture','date_update','num_uai','numero_finess_juridique','coord_x','coord_y']
-final_scope=final[to_keep]
+final_scope=final[to_keep].copy()
 
 scope= [
     "124", "142", "143", "197", "223", "224", "228", "230", 
@@ -97,7 +97,7 @@ scope= [
     "616", "630", "636", "637", "638", "645", "125", "130", 
     "289", "439"
 ]
-final_scope=final[final['code_categorie'].isin(scope)]
+final_scope=final_scope[final_scope['code_categorie'].isin(scope)].copy()
 preventif= ["142", "143", "197", "223", "224", "228", "230", "266", "267", "268", 
                      "269", "270", "294", "347", "438", "616", "636", "637", "638", "645"]
 curatif=["124","125","130","289","439","630"]

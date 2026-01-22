@@ -171,10 +171,10 @@ activities = activities.rename(
 col1, col2 = st.columns(2)
 with col1:
     st.markdown(f'💊 Pharmacies: {len(pharmacies)}')
-    st.dataframe(pharmacies, use_container_width=True)
+    st.dataframe(pharmacies, width='stretch')
 with col2:
     st.markdown('🥼 Pharmacists')
-    st.dataframe(pharmacists, use_container_width=True)
+    st.dataframe(pharmacists, width='stretch')
 st.write(' ')
 
 st.write('Activities')
@@ -225,7 +225,8 @@ def load_finess_data():
             skiprows=1,
             header=None,
             names=headers,
-            encoding='utf-8'
+            encoding='utf-8',
+            low_memory=False
         )
 
         df.drop(columns=['section'], inplace=True)
@@ -547,7 +548,7 @@ pharmacies_table = pharmacies_table[pharmacies_table_columns + ['level']]
 st.write(' ')
 st.write(' ')
 st.markdown('### 📋 Pharmacies Table')
-st.dataframe(pharmacies_table, use_container_width=True)
+st.dataframe(pharmacies_table, width='stretch')
 
 # ============================================================================
 # FILE UPLOADERS
