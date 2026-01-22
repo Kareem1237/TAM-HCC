@@ -20,48 +20,61 @@ st.write(' ')
 # ============================================================================
 # PHARMACY ORDER DATA LOADING
 # ============================================================================
-url = "https://www.ordre.pharmacien.fr/download/annuaire_csv.zip"
-response = requests.get(url)
-response.raise_for_status()
+@st.cache_data(ttl=3600)  # Cache for 1 hour
+def load_pharmacy_order_data():
+    """Load pharmacy order data from ZIP file with error handling."""
+    try:
+        url = "https://www.ordre.pharmacien.fr/download/annuaire_csv.zip"
+        response = requests.get(url, timeout=60)
+        response.raise_for_status()
 
-# Load the ZIP file into a ZipFile object (from bytes, not disk)
-zip_file = zipfile.ZipFile(io.BytesIO(response.content))
+        # Load the ZIP file into a ZipFile object (from bytes, not disk)
+        zip_file = zipfile.ZipFile(io.BytesIO(response.content))
 
-# Find files in the ZIP archive
-pharmacy = [name for name in zip_file.namelist() if "etablissements" in name.lower()]
-pharmacists = [name for name in zip_file.namelist() if "pharmaciens" in name.lower()]
-pac = [name for name in zip_file.namelist() if "activites" in name.lower()]
+        # Find files in the ZIP archive
+        pharmacy = [name for name in zip_file.namelist() if "etablissements" in name.lower()]
+        pharmacists = [name for name in zip_file.namelist() if "pharmaciens" in name.lower()]
+        pac = [name for name in zip_file.namelist() if "activites" in name.lower()]
 
-pharmacy_filename = pharmacy[0]
-pharmacists_filename = pharmacists[0]
-pac_filename = pac[0]
+        if not pharmacy or not pharmacists or not pac:
+            raise ValueError("Required files not found in ZIP archive")
 
-# Read CSV files from ZIP
-with zip_file.open(pharmacy_filename) as ba:
-    pharmacies = pd.read_csv(
-        ba,
-        encoding="utf-16-le",
-        sep=";",
-        engine="python"
-    )
+        pharmacy_filename = pharmacy[0]
+        pharmacists_filename = pharmacists[0]
+        pac_filename = pac[0]
 
-with zip_file.open(pharmacists_filename) as pa:
-    pharmacists = pd.read_csv(
-        pa,
-        encoding="utf-16-le",
-        sep=";",
-        engine="python"
-    )
+        # Read CSV files from ZIP
+        with zip_file.open(pharmacy_filename) as ba:
+            pharmacies = pd.read_csv(
+                ba,
+                encoding="utf-16-le",
+                sep=";",
+                engine="python"
+            )
 
-with zip_file.open(pac_filename) as pacs:
-    activities = pd.read_csv(
-        pacs,
-        encoding="utf-16-le",
-        sep=";",
-        engine="python"
-    )
+        with zip_file.open(pharmacists_filename) as pa:
+            pharmacists_df = pd.read_csv(
+                pa,
+                encoding="utf-16-le",
+                sep=";",
+                engine="python"
+            )
 
-activities = activities.astype("string")
+        with zip_file.open(pac_filename) as pacs:
+            activities = pd.read_csv(
+                pacs,
+                encoding="utf-16-le",
+                sep=";",
+                engine="python"
+            )
+
+        activities = activities.astype("string")
+        return pharmacies, pharmacists_df, activities
+    except Exception as e:
+        st.error(f"Error loading pharmacy order data: {str(e)}")
+        st.stop()
+
+pharmacies, pharmacists, activities = load_pharmacy_order_data()
 
 st.markdown("<h3 style='text-align: center;'> Order of Pharmacies </h3>", unsafe_allow_html=True)
 st.write(' ')
@@ -173,50 +186,69 @@ st.dataframe(activities)
 # ============================================================================
 # FINESS DATABASE LOADING
 # ============================================================================
-url = "https://www.data.gouv.fr/datasets/finess-extraction-du-fichier-des-etablissements/#_"
-page = requests.get(url)
-soup = BeautifulSoup(page.text, 'html')
-url = soup.find('div', class_='flex items-center buttons').find('a')['href']
-filename = url
+@st.cache_data(ttl=3600)  # Cache for 1 hour
+def load_finess_data():
+    """Load FINESS database data with error handling."""
+    try:
+        url = "https://www.data.gouv.fr/datasets/finess-extraction-du-fichier-des-etablissements/#_"
+        page = requests.get(url, timeout=60)
+        page.raise_for_status()
+        soup = BeautifulSoup(page.text, 'html.parser')
+        
+        download_div = soup.find('div', class_='flex items-center buttons')
+        if not download_div:
+            raise ValueError("Could not find download link on FINESS page")
+        
+        download_link = download_div.find('a')
+        if not download_link or 'href' not in download_link.attrs:
+            raise ValueError("Could not find download URL")
+        
+        filename = download_link['href']
 
+        headers = [
+            'section', 'numero_finess', 'numero_finess_juridique', 'raison_sociale',
+            'raison_sociale_long', 'raison_sociale_complement', 'distribution_complement',
+            'voie_numero', 'voie_type', 'voie_label', 'voie_complement', 'lieu_dit_bp',
+            'ville', 'departement', 'departement_label', 'ligne_acheminement', 'telephone',
+            'fax', 'code_categorie', 'label_categorie', 'code_status', 'label_status',
+            'siret', 'ape', 'code_tarif', 'label_tarif', 'code_psph',
+            'label_psph', 'date_ouverture', 'date_autor', 'date_update', 'num_uai'
+        ]
 
-headers = [
-    'section', 'numero_finess', 'numero_finess_juridique', 'raison_sociale',
-    'raison_sociale_long', 'raison_sociale_complement', 'distribution_complement',
-    'voie_numero', 'voie_type', 'voie_label', 'voie_complement', 'lieu_dit_bp',
-    'ville', 'departement', 'departement_label', 'ligne_acheminement', 'telephone',
-    'fax', 'code_categorie', 'label_categorie', 'code_status', 'label_status',
-    'siret', 'ape', 'code_tarif', 'label_tarif', 'code_psph',
-    'label_psph', 'date_ouverture', 'date_autor', 'date_update', 'num_uai'
-]
+        geoloc_names = [
+            'numero_finess', 'coord_x', 'coord_y', 'source_coord', 'date_update_coord'
+        ]
 
-geoloc_names = [
-    'numero_finess', 'coord_x', 'coord_y', 'source_coord', 'date_update_coord'
-]
+        df = pd.read_csv(
+            filename,
+            sep=';',
+            skiprows=1,
+            header=None,
+            names=headers,
+            encoding='utf-8'
+        )
 
-df = pd.read_csv(
-    filename,
-    sep=';',
-    skiprows=1,
-    header=None,
-    names=headers,
-    encoding='utf-8'
-)
+        df.drop(columns=['section'], inplace=True)
 
-df.drop(columns=['section'], inplace=True)
+        # Split data and geolocation
+        geoloc = df.iloc[int(len(df) / 2):].copy()
+        geoloc.drop(columns=geoloc.columns[5:], inplace=True)
+        geoloc.rename(
+            columns=lambda x: geoloc_names[list(df.columns).index(x)],
+            inplace=True
+        )
 
-# Split data and geolocation
-geoloc = df.iloc[int(len(df) / 2):]
-geoloc.drop(columns=geoloc.columns[5:], inplace=True)
-geoloc.rename(
-    columns=lambda x: geoloc_names[list(df.columns).index(x)],
-    inplace=True
-)
+        df = df.iloc[:int(len(df) / 2)].copy()
+        df['numero_finess'] = df['numero_finess'].astype("string")
+        geoloc['numero_finess'] = geoloc['numero_finess'].astype("string")
+        final = df.merge(geoloc, on='numero_finess', how='left')
+        
+        return final
+    except Exception as e:
+        st.error(f"Error loading FINESS data: {str(e)}")
+        st.stop()
 
-df = df.iloc[:int(len(df) / 2)]
-df['numero_finess'] = df['numero_finess'].astype("string")
-geoloc['numero_finess'] = geoloc['numero_finess'].astype("string")
-final = df.merge(geoloc, on='numero_finess', how='left')
+final = load_finess_data()
 
 # ============================================================================
 # FINESS DATA CLEANING

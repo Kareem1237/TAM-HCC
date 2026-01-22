@@ -81,11 +81,11 @@ if df_file and specs_file and agendas_file:
                                left_on='email_metabase', right_on='email_sheet')
     merged_email = merged_email[merged_email['email_metabase'].notna()]
 
+    # Create clean DataFrames with phone columns already converted to string
     specs_clean = specs.dropna(subset=['phone_metabase']).copy()
-    df_clean = df.dropna(subset=['phone_sheet']).copy()
-
-    # Convert to string explicitly to avoid SettingWithCopyWarning
     specs_clean = specs_clean.assign(phone_metabase=specs_clean['phone_metabase'].astype(str))
+    
+    df_clean = df.dropna(subset=['phone_sheet']).copy()
     df_clean = df_clean.assign(phone_sheet=df_clean['phone_sheet'].astype(str))
 
     merged_phone = specs_clean.merge(
