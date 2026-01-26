@@ -19,12 +19,31 @@ df_file = st.file_uploader("Upload the substitutes rak file as csv", type=["csv"
 specs_file = st.file_uploader("Upload the csv of the needed specialties agendas and practitioners query", type=["csv"])
 agendas_file = st.file_uploader("Upload the csv of the Substitutes from recurring events query", type=["csv"])
 
-@st.cache_data(show_spinner="Processing data... This may take a minute.")
-def process_substitutes_data(df_content, specs_content, agendas_content):
-    """Process the substitute data with caching based on file contents."""
-    df = pd.read_csv(io.BytesIO(df_content), dtype=str)
-    specs = pd.read_csv(io.BytesIO(specs_content), dtype=str)
-    agendas = pd.read_csv(io.BytesIO(agendas_content), dtype=str)
+if df_file and specs_file and agendas_file:
+    df = pd.read_csv(df_file, dtype=str)
+    specs = pd.read_csv(specs_file, dtype=str)
+    agendas = pd.read_csv(agendas_file, dtype=str)
+    
+    # Validate required columns exist
+    required_df_cols = ['first_name', 'last_name', 'phone_number', 'id', 'organization_id', 'email', 'status']
+    required_specs_cols = ['phone', 'full_name', 'organization_id', 'email', 'job', 'agenda_owner', 'sf_status', 
+                          'account_id', 'agenda_id', 'sf_id', 'owner_name', 'agenda_specialty', 
+                          'agenda_specialty_sub_group', 'sf_account_specialty.1']
+    required_agendas_cols = ['agenda_id', 'practitioner_substitute_id']
+    
+    missing_df = [col for col in required_df_cols if col not in df.columns]
+    missing_specs = [col for col in required_specs_cols if col not in specs.columns]
+    missing_agendas = [col for col in required_agendas_cols if col not in agendas.columns]
+    
+    if missing_df:
+        st.error(f"❌ Missing columns in substitutes file: {', '.join(missing_df)}")
+        st.stop()
+    if missing_specs:
+        st.error(f"❌ Missing columns in specialties file: {', '.join(missing_specs)}")
+        st.stop()
+    if missing_agendas:
+        st.error(f"❌ Missing columns in agendas file: {', '.join(missing_agendas)}")
+        st.stop()
     
     def format_phone_number(phone_number):
         if pd.isna(phone_number):  
@@ -167,48 +186,6 @@ def process_substitutes_data(df_content, specs_content, agendas_content):
         'count_final': len(final_subs_sheet),
         'count_agendas': len(agendas)
     }
-    
-    return final_subs_sheet, diagnostics
-
-if df_file and specs_file and agendas_file:
-    df = pd.read_csv(df_file, dtype=str)
-    specs = pd.read_csv(specs_file, dtype=str)
-    agendas = pd.read_csv(agendas_file, dtype=str)
-    
-    # Validate required columns exist
-    required_df_cols = ['first_name', 'last_name', 'phone_number', 'id', 'organization_id', 'email', 'status']
-    required_specs_cols = ['phone', 'full_name', 'organization_id', 'email', 'job', 'agenda_owner', 'sf_status', 
-                          'account_id', 'agenda_id', 'sf_id', 'owner_name', 'agenda_specialty', 
-                          'agenda_specialty_sub_group', 'sf_account_specialty.1']
-    required_agendas_cols = ['agenda_id', 'practitioner_substitute_id']
-    
-    missing_df = [col for col in required_df_cols if col not in df.columns]
-    missing_specs = [col for col in required_specs_cols if col not in specs.columns]
-    missing_agendas = [col for col in required_agendas_cols if col not in agendas.columns]
-    
-    if missing_df:
-        st.error(f"❌ Missing columns in substitutes file: {', '.join(missing_df)}")
-        st.stop()
-    if missing_specs:
-        st.error(f"❌ Missing columns in specialties file: {', '.join(missing_specs)}")
-        st.stop()
-    if missing_agendas:
-        st.error(f"❌ Missing columns in agendas file: {', '.join(missing_agendas)}")
-        st.stop()
-    
-    # Read file contents for caching
-    df_file.seek(0)
-    specs_file.seek(0)
-    agendas_file.seek(0)
-    df_content = df_file.read()
-    specs_content = specs_file.read()
-    agendas_content = agendas_file.read()
-    
-    # Process data with caching
-    with st.spinner("🔄 Processing data... This may take a minute for large files."):
-        final_subs_sheet, diagnostics = process_substitutes_data(
-            df_content, specs_content, agendas_content
-        )
     
     # Show diagnostic information
     st.markdown('### Processing Statistics')
